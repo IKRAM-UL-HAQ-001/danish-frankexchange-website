@@ -41,9 +41,9 @@ class BankController extends Controller
             });
 
             return view("admin.bank.list", compact('bankRecords', 'finalBalances'));
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('BankController@index error: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
-            return redirect()->back()->with('error', 'Error loading records: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            echo "Bank Database Error: " . $e->getMessage() . "<br><br>" . $e->getTraceAsString();
+            die();
         }
     }
 
