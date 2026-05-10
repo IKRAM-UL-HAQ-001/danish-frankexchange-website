@@ -132,9 +132,7 @@
 
         .table tbody tr:nth-child(odd):hover {
             background-color: black !important;
-            /* Optional: Change background on hover */
             color: white !important;
-            /* Change text to black */
         }
 
         .table tbody tr:nth-child(even):hover {
