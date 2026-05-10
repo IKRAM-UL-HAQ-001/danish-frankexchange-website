@@ -1,0 +1,233 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Loan;
+use App\Models\Cash;
+use App\Models\OwnerProfit;
+use App\Models\Customer;
+use App\Models\MasterSettling;
+use App\Models\BankEntry;
+use App\Models\OpenCloseBalance;
+use App\Models\User;
+use App\Models\Exchange;
+use App\Models\VenderPayment;
+use Carbon\Carbon;
+use App\Models\ClientBalance;
+use Auth;
+use DB;
+class AssistantController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index()
+    {
+        if (!auth()->check()) {
+            return redirect()->route('auth.login');
+        }
+        else{
+            $today = Carbon::today();
+            $currentMonth = Carbon::now()->month;
+            $currentYear = Carbon::now()->year;
+            
+            $totalOpenCloseBalance = OpenCloseBalance::whereDate('created_at', $today)
+            ->sum('open_balance');
+            $totalLoan = Loan::where('cash_type','send')
+            ->sum('cash_amount');
+
+            $totalLoanReturn = Loan::where('cash_type','return')
+            ->sum('cash_amount');
+            
+            $totalLoanSend = $totalLoan - $totalLoanReturn;
+
+            $totalPaidAmountDaily = VenderPayment::whereDate('created_at', $today)
+                ->sum('paid_amount');
+
+            $totalPaidAmountMonthly = VenderPayment::whereMonth('created_at', $currentMonth)
+            ->sum('paid_amount');
+
+            $totalDepositDaily = Cash::where('cash_type', 'deposit')
+                ->whereDate('created_at', $today)
+                ->sum('cash_amount');
+
+            $totalWithdrawalDaily = Cash::where('cash_type', 'withdrawal')
+                ->whereDate('created_at', $today)
+                ->sum('cash_amount');   
+
+            $totalExpenseDaily = Cash::where('cash_type', 'expense')
+                ->whereDate('created_at', $today)
+                ->sum('cash_amount');  
+
+            $totalBonusDaily = Cash::whereDate('created_at', $today)
+                ->sum('bonus_amount');
+
+            $totalClientBalance = ClientBalance::whereDate('created_at', $today)
+            ->sum('client_balance');
+            
+            $totalOldCustomersDaily = Cash::whereDate('created_at', $today)
+                ->distinct('reference_number')
+                ->count('reference_number');
+            
+            $totalOwnerProfitDaily = OwnerProfit::whereDate('created_at', $today)
+                ->sum('cash_amount');
+                
+            $totalCustomersDaily = Customer::whereDate('created_at', $today)
+                ->distinct('id')
+                ->count('id');
+            
+            $totalMasterSettlingDaily = MasterSettling:: whereDate('created_at', $today)
+            ->distinct('settling_point')
+            ->sum('settling_point');
+
+            $totalBalanceDaily =  $totalDepositDaily -  $totalWithdrawalDaily -  $totalExpenseDaily ;
+            
+            $totalOpenCloseBalanceDaily1 = $totalOpenCloseBalance + $totalBalanceDaily;
+            $totalOpenCloseBalanceDaily = $totalOpenCloseBalanceDaily1 - $totalPaidAmountDaily - $totalOwnerProfitDaily;
+            // Weekly totals
+            $totalDepositWeekly = Cash::where('cash_type', 'deposit')
+            -> whereBetween('created_at', [
+                Carbon::now()->startOfWeek(),
+                Carbon::now()->endOfWeek()
+            ])
+            ->sum('cash_amount');
+
+            $totalWithdrawalWeekly = Cash::where('cash_type', 'withdrawal')
+            -> whereBetween('created_at', [
+                Carbon::now()->startOfWeek(),
+                Carbon::now()->endOfWeek()
+            ])
+            ->sum('cash_amount');
+
+            $totalExpenseWeekly = Cash::where('cash_type', 'expense')
+            -> whereBetween('created_at', [
+                Carbon::now()->startOfWeek(),
+                Carbon::now()->endOfWeek()
+            ])
+            ->sum('cash_amount');
+
+            $totalBonusWeekly = Cash::
+                whereBetween('created_at', [
+                Carbon::now()->startOfWeek(),
+                Carbon::now()->endOfWeek()
+            ])
+                ->sum('bonus_amount');
+
+            $totalOldCustomersWeekly = Cash:: whereBetween('created_at', [
+                Carbon::now()->startOfWeek(),
+                Carbon::now()->endOfWeek()
+            ])
+                ->distinct('reference_number')
+                ->count('reference_number');
+
+            $totalOwnerProfitWeekly = OwnerProfit:: whereBetween('created_at', [
+                Carbon::now()->startOfWeek(),
+                Carbon::now()->endOfWeek()
+            ])
+                ->sum('cash_amount');
+
+            $totalCustomersWeekly = Customer:: whereBetween('created_at', [
+                Carbon::now()->startOfWeek(),
+                Carbon::now()->endOfWeek()
+            ])
+                ->distinct('id')
+                ->count('id');
+
+            $totalMasterSettlingWeekly = MasterSettling:: whereBetween('created_at', [
+                Carbon::now()->startOfWeek(),
+                Carbon::now()->endOfWeek()
+            ])
+            ->distinct('settling_point')
+            ->sum('settling_point');
+
+            $totalBalanceWeekly = $totalDepositWeekly - $totalWithdrawalWeekly - $totalExpenseWeekly;
+            
+            //monthly bases
+
+            $totalDepositMonthly = Cash::where('cash_type', 'deposit')
+                ->whereMonth('created_at', $currentMonth)
+                ->whereYear('created_at', $currentYear)
+                ->sum('cash_amount');
+        
+            $totalWithdrawalMonthly = Cash::where('cash_type', 'withdrawal')
+                ->whereMonth('created_at', $currentMonth)
+                ->whereYear('created_at', $currentYear)
+                ->sum('cash_amount');
+            
+            $totalExpenseMonthly = Cash::where('cash_type', 'expense')
+                ->whereMonth('created_at', $currentMonth)
+                ->whereYear('created_at', $currentYear)
+                ->sum('cash_amount');
+        
+            $totalBonusMonthly = Cash::whereMonth('created_at', $currentMonth)
+                ->whereYear('created_at', $currentYear)
+                ->sum('bonus_amount');
+                
+            $totalOldCustomersMonthly = Cash::whereMonth('created_at', $currentMonth)
+                ->whereYear('created_at', $currentYear)
+                ->distinct('reference_number')
+                ->count('reference_number');
+            
+            $totalMasterSettlingMonthly = MasterSettling::whereMonth('created_at', $currentMonth)
+            ->whereYear('created_at', $currentYear)
+            ->distinct('settling_point')
+            ->sum('settling_point');
+            
+            $totalOwnerProfitMonthly= OwnerProfit::whereMonth('created_at', $currentMonth)
+                ->whereYear('created_at', $currentYear)
+                ->sum('cash_amount');
+            
+            $totalCustomersMonthly = Customer::whereMonth('created_at', $currentMonth)
+                ->whereYear('created_at', $currentYear)
+                ->distinct('id')
+                ->count('id');
+            
+            $totalAmountAdd = BankEntry::where('cash_type', 'add')
+            ->where('status', null)
+                ->sum('cash_amount');
+
+            $totalAmountSubtract = BankEntry::where('cash_type', 'minus')
+            ->where('status', null)
+                ->sum('cash_amount');
+            
+            $totalFreezAmount = BankEntry::where('status', 'freez')
+            ->sum('cash_amount');
+            $totalBankBalance = (int)$totalAmountAdd - (int)$totalAmountSubtract - $totalFreezAmount;
+            
+            $totalBalanceMonthly = $totalDepositMonthly - $totalWithdrawalMonthly - $totalExpenseMonthly;
+            $totalUsers = User::count();
+            $totalExchanges = Exchange::count();
+            
+            $totalFreezAmountDaily = BankEntry::where('status', 'freez')
+            ->whereDate('created_at', $today)
+            ->sum('cash_amount');
+            
+            $totalFreezAmountWeekly = BankEntry::where('status', 'freez')
+            -> whereBetween('created_at', [
+                Carbon::now()->startOfWeek(),
+                Carbon::now()->endOfWeek()
+            ])
+            ->sum('cash_amount');
+
+            $totalFreezAmountMonthly = BankEntry::where('status', 'freez')
+            ->whereMonth('created_at', $currentMonth)
+            ->whereYear('created_at', $currentYear)
+            ->sum('cash_amount');
+            $viewData = compact(
+                'totalClientBalance','totalLoanSend','totalUsers', 'totalExchanges', 'totalBalanceMonthly', 'totalDepositMonthly', 
+                'totalWithdrawalMonthly', 'totalExpenseMonthly', 'totalMasterSettlingMonthly',
+                'totalPaidAmountMonthly', 'totalBonusMonthly','totalFreezAmountMonthly',
+                'totalOldCustomersMonthly', 'totalOwnerProfitMonthly', 'totalCustomersMonthly',
+                'totalBalanceDaily', 'totalDepositDaily', 'totalWithdrawalDaily', 'totalExpenseDaily',
+                'totalBonusDaily', 'totalOldCustomersDaily', 'totalOwnerProfitDaily', 'totalCustomersDaily',
+                'totalBankBalance', 'totalOpenCloseBalanceDaily', 'totalPaidAmountDaily','totalFreezAmountDaily',
+                'totalMasterSettlingDaily','totalBalanceWeekly', 'totalDepositWeekly','totalWithdrawalWeekly', 'totalExpenseWeekly',
+                'totalBonusWeekly', 'totalOldCustomersWeekly', 'totalOwnerProfitWeekly', 'totalCustomersWeekly','totalFreezAmountWeekly',
+                'totalMasterSettlingWeekly',
+            );
+            return response()
+            ->view('assistant.dashboard', $viewData);
+        }   
+    }    
+}
