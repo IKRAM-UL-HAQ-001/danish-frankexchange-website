@@ -36,14 +36,14 @@ class BankController extends Controller
                 ->groupBy('bank_name')
                 ->pluck('balance', 'bank_name');
 
-            $finalBalances = $bank_names->mapWithKeys(function ($id) use ($bankBalances) {
-                return [$id => $bankBalances->get($id, 0)];
+            $finalBalances = $bank_names->mapWithKeys(function ($name) use ($bankBalances) {
+                return [$name => $bankBalances->get($name, 0)];
             });
 
             return view("admin.bank.list", compact('bankRecords', 'finalBalances'));
         } catch (\Throwable $e) {
-            echo "Bank Database Error: " . $e->getMessage() . "<br><br>" . $e->getTraceAsString();
-            die();
+            \Illuminate\Support\Facades\Log::error('BankController@index error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error loading records: ' . $e->getMessage());
         }
     }
 
