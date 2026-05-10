@@ -19,7 +19,11 @@ class DatabaseExportController extends Controller
         $password = env('DB_PASSWORD');
         $host = env('DB_HOST');
 
-        $command = "mysqldump --user={$username} --password={$password} --host={$host} {$databaseName}";
+        $mysqldumpPath = 'C:\\xampp\\mysql\\bin\\mysqldump.exe';
+        $mysqldump = file_exists($mysqldumpPath) ? $mysqldumpPath : 'mysqldump';
+
+        $passwordArg = empty($password) ? '' : "--password={$password}";
+        $command = "{$mysqldump} --user={$username} {$passwordArg} --host={$host} {$databaseName}";
 
         // Execute the command and get the output
         $output = [];
