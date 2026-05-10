@@ -14,16 +14,28 @@ class DatabaseExportController extends Controller
         $filename = 'database_export_' . date('Y-m-d_H-i-s') . '.sql';
 
         // Command to export the database
-        $databaseName = env('DB_DATABASE');
-        $username = env('DB_USERNAME');
+        $username = escapeshellarg(env('DB_USERNAME'));
         $password = env('DB_PASSWORD');
-        $host = env('DB_HOST');
+        $host = escapeshellarg(env('DB_HOST'));
+        $databaseName = escapeshellarg(env('DB_DATABASE'));
 
-        $mysqldumpPath = 'C:\\xampp\\mysql\\bin\\mysqldump.exe';
-        $mysqldump = file_exists($mysqldumpPath) ? $mysqldumpPath : 'mysqldump';
+        $mysqldumpPaths = [
+            'C:\\xampp\\mysql\\bin\\mysqldump.exe', // Windows XAMPP
+            '/usr/bin/mysqldump',                   // Standard Linux
+            '/usr/local/bin/mysqldump',             // macOS / Custom Linux
+            '/bin/mysqldump',
+        ];
 
-        $passwordArg = empty($password) ? '' : "--password={$password}";
-        $command = "{$mysqldump} --user={$username} {$passwordArg} --host={$host} {$databaseName}";
+        $mysqldump = 'mysqldump';
+        foreach ($mysqldumpPaths as $path) {
+            if (file_exists($path)) {
+                $mysqldump = escapeshellarg($path);
+                break;
+            }
+        }
+
+        $passwordArg = empty($password) ? '' : '--password=' . escapeshellarg($password);
+        $command = "{$mysqldump} --user={$username} {$passwordArg} --host={$host} {$databaseName} 2>&1";
 
         // Execute the command and get the output
         $output = [];
@@ -33,7 +45,9 @@ class DatabaseExportController extends Controller
 
         // Check if the command was successful
         if ($returnVar !== 0) {
-            return redirect()->back()->with('error', 'Failed to export database.');
+            $errorMessage = implode(" ", $output);
+            \Illuminate\Support\Facades\Log::error("Database export failed: " . $errorMessage);
+            return redirect()->back()->with('error', 'Failed to export database. Error: ' . $errorMessage);
         }
 
         // Create the SQL file content
