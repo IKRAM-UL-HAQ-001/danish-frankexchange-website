@@ -36,8 +36,8 @@
     <!-- Schema -->
     <script type="application/ld+json">
     {
-        "@context": "https://schema.org",
-        "@type": "WebPage",
+        "@@context": "https://schema.org",
+        "@@type": "WebPage",
         "name": "Your Custom Exchange Platform",
         "description": "Effortlessly manage your exchange roles, including Admin, Exchange, and Assistant. Choose from top platforms: JADUGAR, AMAZON, CRICKETSTAR, FASTBET, BETBAZAR."
     }
